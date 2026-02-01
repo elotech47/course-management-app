@@ -15,9 +15,24 @@ app = FastAPI(
 )
 
 # CORS middleware
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",  # Vite dev server
+]
+
+# Allow additional origins from environment
+if settings.ENVIRONMENT == "production":
+    # Add production frontend URL from env if available
+    import os
+    frontend_url = os.getenv("FRONTEND_URL")
+    if frontend_url:
+        origins.append(frontend_url)
+    # Allow any origin in production (you can restrict this further)
+    origins.append("*")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=origins if settings.ENVIRONMENT == "development" else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,5 +53,6 @@ async def root():
     return {"message": "Course Management System API", "version": "1.0.0"}
 
 @app.get("/health")
+@app.get("/api/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "version": "1.0.0"}

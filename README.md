@@ -43,12 +43,58 @@ A comprehensive digital grading system for lab courses, built with FastAPI (back
 
 ## Prerequisites
 
-- Python 3.9+
+### For Development
+- Python 3.11+
 - Node.js 18+
 - PostgreSQL 14+
-- SendGrid API key (for email functionality)
 
-## Installation
+### For Production Deployment
+**Script-based:**
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL 14+
+
+**Docker-based:**
+- Docker 20.10+
+- Docker Compose 2.0+
+
+## Quick Start
+
+### Development Setup
+
+See the detailed installation instructions below.
+
+### Production Deployment
+
+**🚀 Two deployment methods available:**
+
+1. **Script-based deployment** (Direct server deployment)
+   ```bash
+   cp env.example .env
+   nano .env  # Configure your settings
+   ./deploy.sh
+   ```
+
+2. **Docker deployment** (Containerized)
+   ```bash
+   cp env.example .env
+   nano .env  # Configure your settings
+   docker-compose -f docker-compose.prod.yml up -d --build
+   ```
+
+📖 **See [QUICKSTART.md](QUICKSTART.md) for rapid deployment**  
+📖 **See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive deployment guide**
+
+**Key features:**
+- ✅ Configurable ports (no port conflicts!)
+- ✅ Production-ready builds with Nginx
+- ✅ Automated scripts for easy management
+- ✅ Health monitoring and auto-restart
+- ✅ Comprehensive documentation
+
+---
+
+## Development Installation
 
 ### 1. Clone the repository
 
