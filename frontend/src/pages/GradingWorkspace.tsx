@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Send, Save } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
 import api from '@/lib/api'
+import { formatApiError } from '@/lib/errorUtils'
 
 interface Assignment {
   id: number
@@ -52,7 +53,7 @@ interface Rubric {
 
 export default function GradingWorkspace() {
   const { sessionId } = useParams()
-  const [students, setStudents] = useState<Student[]>([])
+  const [_students, setStudents] = useState<Student[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [selectedStudent, setSelectedStudent] = useState<Assignment | null>(null)
   const [showRoleModal, setShowRoleModal] = useState(false)
@@ -155,7 +156,7 @@ export default function GradingWorkspace() {
       // Load rubric for the assigned role
       loadRubricAndGrade(selectedRole, selectedStudent.student_id)
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to assign role')
+      toast.error(formatApiError(error) || 'Failed to assign role')
     }
   }
 
@@ -278,7 +279,7 @@ export default function GradingWorkspace() {
         }
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to save grade', {
+      toast.error(formatApiError(error) || 'Failed to save grade', {
         duration: 4000,
       })
     } finally {

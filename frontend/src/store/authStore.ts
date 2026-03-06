@@ -24,13 +24,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: !!localStorage.getItem('token'),
 
   login: async (email: string, password: string) => {
-    const formData = new FormData()
-    formData.append('username', email)
-    formData.append('password', password)
+    // API expects application/x-www-form-urlencoded (OAuth2PasswordRequestForm)
+    // Using URLSearchParams avoids CORS preflight (simple content-type)
+    const body = new URLSearchParams()
+    body.set('username', email)
+    body.set('password', password)
 
-    const response = await api.post('/api/auth/login', formData, {
+    const response = await api.post('/api/auth/login', body, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
     })
 

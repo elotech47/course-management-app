@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 # Load environment variables from .env file
 if [ -f .env ]; then
     echo -e "${GREEN}✓${NC} Loading environment variables from .env file..."
-    export $(cat .env | grep -v '^#' | xargs)
+    export $(grep -v '^#' .env | sed 's/[[:space:]]*#.*$//' | grep -v '^$' | xargs)
 else
     echo -e "${RED}✗${NC} .env file not found!"
     echo "Please create a .env file based on env.example"
@@ -29,6 +29,9 @@ fi
 BACKEND_PORT=${BACKEND_PORT:-8000}
 FRONTEND_PORT=${FRONTEND_PORT:-3000}
 POSTGRES_PORT=${POSTGRES_PORT:-5432}
+
+# Ensure logs directory exists (used by backend and frontend processes)
+mkdir -p logs
 
 echo ""
 echo "Configuration:"
@@ -96,8 +99,19 @@ echo "Installing/updating Python dependencies..."
 pip install -q --upgrade pip
 pip install -q -r requirements.txt
 
-echo "Running database migrations..."
-alembic upgrade head
+# PostgreSQL 15+ revokes CREATE on schema public; grant to app user so create_all works
+echo "Ensuring database user has schema permissions..."
+DB_NAME="${POSTGRES_DB:-course_management}"
+DB_USER="${POSTGRES_USER:-course_admin}"
+if ! sudo -u postgres psql -d "$DB_NAME" -c "GRANT CREATE ON SCHEMA public TO $DB_USER; GRANT USAGE ON SCHEMA public TO $DB_USER; GRANT ALL ON SCHEMA public TO $DB_USER;" 2>/dev/null; then
+    echo -e "${RED}✗${NC} Could not grant schema permissions (PostgreSQL 15+ restricts public schema)."
+    echo "Run this once as a superuser, then run ./deploy.sh again:"
+    echo "  sudo -u postgres psql -d $DB_NAME -c \"GRANT CREATE, USAGE ON SCHEMA public TO $DB_USER; GRANT ALL ON SCHEMA public TO $DB_USER;\""
+    exit 1
+fi
+
+echo "Creating database tables..."
+python -c "from app.db import models; from app.db.database import engine; models.Base.metadata.create_all(bind=engine)"
 
 echo -e "${GREEN}✓${NC} Backend setup complete"
 
@@ -132,7 +146,10 @@ echo "Installing/updating Node.js dependencies..."
 npm install
 
 echo "Building frontend for production..."
-VITE_API_URL="http://localhost:$BACKEND_PORT" npm run build
+# Use VITE_API_URL from .env if set, otherwise default to localhost
+VITE_API_URL=${VITE_API_URL:-"http://localhost:$BACKEND_PORT"}
+echo "  Using API URL: $VITE_API_URL"
+VITE_API_URL=$VITE_API_URL npm run build
 
 echo -e "${GREEN}✓${NC} Frontend build complete"
 
@@ -147,16 +164,18 @@ if [ -f "/tmp/${FRONTEND_SERVICE_NAME}.pid" ]; then
     fi
 fi
 
-# Serve frontend with a simple HTTP server
+# Serve production build using vite preview (lightweight, built-in)
 echo "Starting frontend server on port $FRONTEND_PORT..."
 
-# Check if 'serve' is installed
-if ! command -v serve &> /dev/null; then
-    echo "Installing 'serve' package globally..."
-    npm install -g serve
+# Verify dist folder exists (vite preview serves from dist)
+if [ ! -d "dist" ]; then
+    echo -e "${RED}✗${NC} dist folder not found"
+    echo "Please run the build first"
+    exit 1
 fi
+echo "  Serving from: $(pwd)/dist (vite preview)"
 
-nohup serve -s dist -l $FRONTEND_PORT > ../logs/frontend.log 2>&1 &
+nohup npm run preview -- --port $FRONTEND_PORT --host 0.0.0.0 > ../logs/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo $FRONTEND_PID > /tmp/${FRONTEND_SERVICE_NAME}.pid
 echo -e "${GREEN}✓${NC} Frontend started (PID: $FRONTEND_PID)"

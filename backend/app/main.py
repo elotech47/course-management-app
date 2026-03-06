@@ -14,25 +14,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS middleware – allow frontend origins (browser enforces; backend must list them)
 origins = [
     "http://localhost:3000",
+    "http://localhost:3050",  # Production frontend local
     "http://localhost:5173",  # Vite dev server
+    "https://app.lab-grader.space",  # Production frontend (always allow so CORS works when deployed)
 ]
 
 # Allow additional origins from environment
-if settings.ENVIRONMENT == "production":
-    # Add production frontend URL from env if available
-    import os
-    frontend_url = os.getenv("FRONTEND_URL")
-    if frontend_url:
-        origins.append(frontend_url)
-    # Allow any origin in production (you can restrict this further)
-    origins.append("*")
+import os
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url and frontend_url not in origins:
+    origins.append(frontend_url)
 
+# Note: Cannot use ["*"] with allow_credentials=True, must specify exact origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if settings.ENVIRONMENT == "development" else ["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

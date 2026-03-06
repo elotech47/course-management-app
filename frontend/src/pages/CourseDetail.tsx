@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Users, Calendar, FileText, Upload, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Users, Calendar, FileText, Trash2 } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
 import api from '@/lib/api'
+import { formatApiError } from '@/lib/errorUtils'
 
 interface Course {
   id: number
@@ -85,15 +86,21 @@ export default function CourseDetail() {
       loadCourseData()
       toast.success('Student added successfully!', { icon: '✅' })
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to add student')
+      toast.error(formatApiError(error) || 'Failed to add student')
     }
   }
 
   const handleAddSession = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // Convert date string to ISO datetime format (backend expects datetime)
+      const sessionDate = newSession.session_date
+        ? new Date(newSession.session_date + 'T00:00:00').toISOString()
+        : new Date().toISOString()
+
       await api.post('/api/sessions/', {
         ...newSession,
+        session_date: sessionDate,
         course_id: Number(courseId),
       })
       setShowAddSessionModal(false)
@@ -101,7 +108,7 @@ export default function CourseDetail() {
       loadCourseData()
       toast.success('Session added successfully!', { icon: '✅' })
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to add session')
+      toast.error(formatApiError(error) || 'Failed to add session')
     }
   }
 
@@ -120,7 +127,7 @@ export default function CourseDetail() {
       loadCourseData()
       toast.success('Session deleted successfully!', { icon: '🗑️' })
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to delete session')
+      toast.error(formatApiError(error) || 'Failed to delete session')
     }
   }
 

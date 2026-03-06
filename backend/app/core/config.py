@@ -1,8 +1,9 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 import os
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL","postgresql://user:password@localhost:5432/course_management")
     # Security
@@ -21,9 +22,5 @@ class Settings(BaseSettings):
     # Application
     ENVIRONMENT: str = os.getenv("ENVIRONMENT","development")
     DEBUG: bool = os.getenv("DEBUG",True)
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 settings = Settings()
